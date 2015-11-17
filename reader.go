@@ -68,7 +68,12 @@ func (r *Reader) findRune(s string, ru rune) int {
 func (r *Reader) load(n int) error {
 	for {
 		if !r.scanner.Scan() {
-			return r.scanner.Err()
+			err := r.scanner.Err()
+			if err == io.EOF {
+				r.eof = true
+				err = nil
+			}
+			return err
 		}
 		line := r.scanner.Text()
 		p := r.findRune(line, '#')
@@ -91,7 +96,9 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 	if r.buf.Len() < len(p) {
-		r.load(len(p) - r.buf.Len())
+		if err := r.load(len(p) - r.buf.Len()); err != nil {
+			return 0, err
+		}
 	}
 	return r.buf.Read(p)
 }
