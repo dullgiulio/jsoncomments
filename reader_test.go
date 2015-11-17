@@ -27,7 +27,7 @@ func TestStripComments(t *testing.T) {
 }
 `
 	buf := bytes.NewBufferString("")
-	r := NewSkipCommentsReader(strings.NewReader(input))
+	r := NewReader(strings.NewReader(input))
 	buf.ReadFrom(r)
 
 	out := buf.String()

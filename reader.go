@@ -8,8 +8,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"os"
-	"strings"
 )
 
 func isQuote(c rune) bool {
@@ -19,26 +17,26 @@ func isQuote(c rune) bool {
 	return false
 }
 
-// SkipCommentsReader implements a reader that discards comments.
+// Reader implements a reader that discards comments.
 //
 // Comments are all contents after a # in non-quoted string context.
-type SkipCommentsReader struct {
+type Reader struct {
 	scanner *bufio.Scanner
 	buf     *bytes.Buffer
 	eof     bool
 	ooc     bool // Out-of-Context: cannot remove comments here.
 }
 
-// NewSkipCommentsReader creates a new SkipCommentsReader from underlying reader r.
-func NewSkipCommentsReader(r io.Reader) *SkipCommentsReader {
-	return &SkipCommentsReader{
+// NewReader creates a new Reader from underlying reader r.
+func NewReader(r io.Reader) *Reader {
+	return &Reader{
 		buf:     bytes.NewBufferString(""),
 		scanner: bufio.NewScanner(r),
 	}
 }
 
 // findRune finds rune r in a non-quoted context in s.
-func (r *SkipCommentsReader) findRune(s string, ru rune) int {
+func (r *Reader) findRune(s string, ru rune) int {
 	var esc bool // Next rune has been escaped
 	p := -1
 	for i, b := range s {
@@ -67,7 +65,7 @@ func (r *SkipCommentsReader) findRune(s string, ru rune) int {
 
 // load loads into an internal buffer to satisfy the next read.
 // Comments are stripped before the resulting data is written to the buffer.
-func (r *SkipCommentsReader) load(n int) error {
+func (r *Reader) load(n int) error {
 	for {
 		if !r.scanner.Scan() {
 			return r.scanner.Err()
@@ -85,7 +83,7 @@ func (r *SkipCommentsReader) load(n int) error {
 }
 
 // Read implements a io.Reader interface.
-func (r *SkipCommentsReader) Read(p []byte) (n int, err error) {
+func (r *Reader) Read(p []byte) (n int, err error) {
 	if r.eof {
 		if r.buf.Len() > 0 {
 			return r.buf.Read(p)
