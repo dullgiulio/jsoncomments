@@ -66,14 +66,13 @@ func (r *Reader) findRune(s string, ru rune) int {
 // load loads into an internal buffer to satisfy the next read.
 // Comments are stripped before the resulting data is written to the buffer.
 func (r *Reader) load(n int) error {
+	var err error
 	for {
 		if !r.scanner.Scan() {
-			err := r.scanner.Err()
-			if err == io.EOF {
-				r.eof = true
-				err = nil
+			if err := r.scanner.Err(); err != nil {
+				return err
 			}
-			return err
+			return io.EOF
 		}
 		line := r.scanner.Text()
 		p := r.findRune(line, '#')
@@ -81,23 +80,18 @@ func (r *Reader) load(n int) error {
 			line = line[:p]
 		}
 		r.buf.WriteString(line + "\n")
-		if r.buf.Len() > n {
-			return nil
+		if r.buf.Len() >= n {
+			return err
 		}
 	}
 }
 
 // Read implements a io.Reader interface.
 func (r *Reader) Read(p []byte) (n int, err error) {
-	if r.eof {
-		if r.buf.Len() > 0 {
-			return r.buf.Read(p)
-		}
-		return 0, io.EOF
-	}
 	if r.buf.Len() < len(p) {
 		if err := r.load(len(p) - r.buf.Len()); err != nil {
-			return 0, err
+			n, _ = r.buf.Read(p)
+			return n, err
 		}
 	}
 	return r.buf.Read(p)
